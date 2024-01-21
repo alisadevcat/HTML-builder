@@ -5,7 +5,16 @@ const pathName = path.join(__dirname, 'files');
 
 function copyDir() {
   fs.promises.mkdir(pathNameNew, { recursive: true });
-  getFileNames();
+  uniqueValues().then((data) =>
+    data.forEach((file) => {
+      fs.watch(path.join(pathName, file), (event, filename) => {
+        if (filename && event === 'change') {
+          // console.log(`${filename} file Changed`);
+          copy(file);
+        }
+      });
+    }),
+  );
 }
 
 function copy(file) {
@@ -23,18 +32,15 @@ function copy(file) {
   );
 }
 
-function getFileNames() {
-  fs.readdir(pathName, { withFileTypes: true }, (err, files) => {
-    if (err) {
-      console.log(err);
-    } else {
-      files.forEach((file) => {
-        if (file.isFile()) {
-          copy(file.name);
-        }
-      });
-    }
-  });
+async function uniqueValues() {
+  const files = await fs.promises.readdir(pathName);
+  await Promise.all(
+    files.map((file) => {
+      copy(file);
+    }),
+  );
+
+  return new Set(files);
 }
 
 copyDir();
